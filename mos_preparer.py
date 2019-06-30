@@ -55,36 +55,98 @@ def runModel(input, expected):
             'expected': expected}
 
 
-# craete stalls from 'Estimating the impact of single and multiple freezes on video quality'
+# Assume values from 'A Study on Quality of Experience for Adaptive Streaming Service'
+output_file = 'result_06649320.json'
+
 codec = 'h264'
-framerate = 25.0
-bitrate = 3500
-resolution = '704x576'
-stall_durations = [[0.12, 4],
-    [0.2, 3.8],
-    [0.52, 3],
-    [1, 2.5],
-    [2, 1.8],
-    [3, 1.5]]
-results = []
+framerate = 25
+resolution = '1280x720'
+bitrates = {'R1': 256,
+    'R2': 384,
+    'R3': 512,
+    'R4': 768,
+    'R5': 1024,
+    'R6': 1538,
+    'R7': 2048
+    }
+segment_dur = 9
 
-for stall in stall_durations:
-    stalls = []
+def createVideoSegmentsFromRates(rates):
+    assert len(rates) == 12, "Misread some rates"
     segments = []
-    stall_duration = stall[0]
-    stalls.append(createStallingSegment(0, 0))
-    segments.append(createVideoSegment(codec, bitrate, 0, 10, resolution, framerate))
-    stalls.append(createStallingSegment(10, stall_duration))
-    segments.append(createVideoSegment(codec, bitrate, 10, 20, resolution, framerate))
+    cur_dur = 0
+    for r in rates:
+        segments.append(createVideoSegment(codec, bitrates[r], cur_dur, segment_dur, resolution, framerate))
+        cur_dur = cur_dur+segment_dur
+    return segments
 
+prepared_input_segments = []
+
+#region avg 384
+# rising
+rates = ['R1','R1','R1','R1','R2','R2','R2','R2','R3','R3','R3','R3']
+prepared_input_segments.append([createVideoSegmentsFromRates(rates), 1.7])
+
+# falling
+rates = ['R3','R3','R3','R3','R2','R2','R2','R2','R1','R1','R1','R1']
+prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.45])
+
+# convex
+rates = ['R2','R2','R2','R2','R3','R3','R3','R3','R1','R1','R1','R1']
+prepared_input_segments.append([createVideoSegmentsFromRates(rates), 2.55])
+#endregion
+
+#region avg 768
+# rising
+rates = ['R3','R3','R3','R3','R4','R4','R4','R4','R5','R5','R5','R5']
+prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.55])
+
+# falling
+rates = ['R5','R5','R5','R5','R4','R4','R4','R4','R3','R3','R3','R3']
+prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.5])
+
+# convex
+rates = ['R4','R4','R4','R4','R5','R5','R5','R5','R3','R3','R3','R3']
+prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.15])
+#endregion
+
+#region avg 768 (5 rates)
+# rising
+rates = ['R1','R3','R3','R3','R4','R4','R4','R4','R4','R5','R5','R6']
+prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.25])
+
+# falling
+rates = ['R6','R5','R5','R4','R4','R4','R4','R4','R3','R3','R3','R1']
+prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.6])
+
+# convex
+rates = ['R1','R3','R4','R4','R5','R6','R5','R4','R4','R4','R3','R3']
+prepared_input_segments.append([createVideoSegmentsFromRates(rates), 2.55])
+#endregion
+
+#region avg 1024 (5 rates)
+# rising
+rates = ['R1','R3','R4','R4','R4','R5','R5','R5','R6','R6','R6','R6']
+prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.0])
+
+# falling
+rates = ['R6','R6','R6','R6','R5','R5','R5','R4','R4','R4','R3','R1']
+prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.75])
+
+# convex
+rates = ['R1','R4','R4','R4','R6','R6','R6','R6','R5','R5','R5','R3']
+prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.4])
+#endregion
+
+# exec all estimations
+results = []
+for seg in prepared_input_segments:
     input = {}
-    input["I11"] = prepareI11([createAudioSegment('aaclc', 0, 0, 20)]) # no audio
-    input["I13"] = prepareI13(segments)
-    input["I23"] = prepareI23(stalls)
-    input["IGen"] = prepareIGen('1400x1050', 80)
-
-    results.append(runModel(input, stall[1]))
+    input["I11"] = prepareI11([createAudioSegment('aaclc', 0, 0, 9*12)]) # no audio
+    input["I13"] = prepareI13(seg[0])
+    input["IGen"] = prepareIGen(resolution, 80)
+    results.append(runModel(input, seg[1]))
 
 # write json to file
-with open('results/result_279425.json', 'w') as file:
+with open(f'results/{output_file}', 'w') as file:
     file.write(json.dumps(results))

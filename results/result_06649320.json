@@ -1,0 +1,38 @@
+[{
+		"calculated": 4.228512078197415,
+		"expected": 1.7
+	}, {
+		"calculated": 4.191360049727454,
+		"expected": 3.45
+	}, {
+		"calculated": 4.193126844882061,
+		"expected": 2.55
+	}, {
+		"calculated": 4.342447296189183,
+		"expected": 3.55
+	}, {
+		"calculated": 4.311498235427685,
+		"expected": 3.5
+	}, {
+		"calculated": 4.3132311919256,
+		"expected": 3.15
+	}, {
+		"calculated": 4.337745264639258,
+		"expected": 3.25
+	}, {
+		"calculated": 4.280952102694894,
+		"expected": 3.6
+	}, {
+		"calculated": 4.306371272228255,
+		"expected": 2.55
+	}, {
+		"calculated": 4.374701621060408,
+		"expected": 3.0
+	}, {
+		"calculated": 4.31586599166467,
+		"expected": 3.75
+	}, {
+		"calculated": 4.345288990346158,
+		"expected": 3.4
+	}
+]
