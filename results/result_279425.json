@@ -1,0 +1,20 @@
+[{
+		"calculated": 3.5340097589214654,
+		"expected": 4
+	}, {
+		"calculated": 3.5280654630335064,
+		"expected": 3.8
+	}, {
+		"calculated": 3.5018177253035674,
+		"expected": 3
+	}, {
+		"calculated": 3.4252365542828143,
+		"expected": 2.5
+	}, {
+		"calculated": 3.3220072664011555,
+		"expected": 1.8
+	}, {
+		"calculated": 3.2079466820771536,
+		"expected": 1.5
+	}
+]

@@ -1,12 +1,10 @@
 import json
+from itu_p1203 import P1203Standalone
 
 STREAM_ID = 42
 
-def prepareI11():
+def prepareI11(segments):
     '''Prepares I.11 aka audio'''
-    segments = [
-        createAudioSegment('aaclc',331,1,5.48)
-    ]
     return {'streamId': STREAM_ID, 'segments': segments}
 
 def createAudioSegment(codec, bitrate, start, duration):
@@ -17,11 +15,8 @@ def createAudioSegment(codec, bitrate, start, duration):
         'duration': duration
     }
 
-def prepareI13():
+def prepareI13(segments):
     '''Prepares I.13 aka video'''
-    segments = [
-        createVideoSegment('h264', 690, 1, 5.48, '1920x1080', 25.0)
-    ]
     return {'streamId': STREAM_ID, 'segments': segments}
 
 def createVideoSegment(codec, bitrate, start, duration, resolution, fps):
@@ -35,39 +30,61 @@ def createVideoSegment(codec, bitrate, start, duration, resolution, fps):
         'fps': fps
     }
 
-def prepareI23():
+def prepareI23(stalls):
     '''Prepares I.14 aka stalling, here called I.23'''
-    segments = [
-         createStallingSegment(0, 1)
-    ]
-    return {'streamId': STREAM_ID, 'stalling': segments}
+    return {'streamId': STREAM_ID, 'stalling': stalls}
     
 def createStallingSegment(start, duration):
     return [start, duration]
 
-def prepareIGen():
+def prepareIGen(resolution, viewing_distance):
     '''Prepares device information'''
     return {
-        "displaySize": "1920x1080",
+        "displaySize": resolution,
         "device": "pc",
-        "viewingDistance": '150cm'
+        "viewingDistance": viewing_distance
     }
 
+def runModel(input, expected):
+      # create model ...
+    itu_p1203 = P1203Standalone(input)
+    # ... and run it
+    output = itu_p1203.calculate_complete(False)
 
-input = {}
-input["I11"] = prepareI11()
-input["I13"] = prepareI13()
-input["I23"] = prepareI23()
-input["IGen"] = prepareIGen()
+    return {'calculated': output['O46'],
+            'expected': expected}
+
+
+# craete stalls from 'Estimating the impact of single and multiple freezes on video quality'
+codec = 'h264'
+framerate = 25.0
+bitrate = 3500
+resolution = '704x576'
+stall_durations = [[0.12, 4],
+    [0.2, 3.8],
+    [0.52, 3],
+    [1, 2.5],
+    [2, 1.8],
+    [3, 1.5]]
+results = []
+
+for stall in stall_durations:
+    stalls = []
+    segments = []
+    stall_duration = stall[0]
+    stalls.append(createStallingSegment(0, 0))
+    segments.append(createVideoSegment(codec, bitrate, 0, 10, resolution, framerate))
+    stalls.append(createStallingSegment(10, stall_duration))
+    segments.append(createVideoSegment(codec, bitrate, 10, 20, resolution, framerate))
+
+    input = {}
+    input["I11"] = prepareI11([createAudioSegment('aaclc', 0, 0, 20)]) # no audio
+    input["I13"] = prepareI13(segments)
+    input["I23"] = prepareI23(stalls)
+    input["IGen"] = prepareIGen('1400x1050', 80)
+
+    results.append(runModel(input, stall[1]))
 
 # write json to file
-with open('input.json', 'w') as file:
-    file.write(json.dumps(input))
-
-
-from itu_p1203 import P1203Standalone
-# create model ...
-itu_p1203 = P1203Standalone(input)
-# ... and run it
-output = itu_p1203.calculate_complete(False)
-print("Final MOS Score: " + str(output['O46']))
+with open('results/result_279425.json', 'w') as file:
+    file.write(json.dumps(results))
