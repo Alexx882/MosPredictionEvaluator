@@ -1,5 +1,6 @@
 import json
 from itu_p1203 import P1203Standalone
+import statistics
 
 STREAM_ID = 42
 
@@ -55,98 +56,101 @@ def runModel(input, expected):
             'expected': expected}
 
 
-# Assume values from 'A Study on Quality of Experience for Adaptive Streaming Service'
-output_file = 'result_06649320.json'
+# Copy values from 'Cross-Dimensional Perceptual Quality Assessment for Low Bit-Rate Videos'
+output_file = 'result_04660307'
 
 codec = 'h264'
-framerate = 25
-resolution = '1280x720'
-bitrates = {'R1': 256,
-    'R2': 384,
-    'R3': 512,
-    'R4': 768,
-    'R5': 1024,
-    'R6': 1538,
-    'R7': 2048
-    }
-segment_dur = 9
+resolution = '1408x1152' # '352x288'
 
-def createVideoSegmentsFromRates(rates):
-    assert len(rates) == 12, "Misread some rates"
-    segments = []
-    cur_dur = 0
-    for r in rates:
-        segments.append(createVideoSegment(codec, bitrates[r], cur_dur, segment_dur, resolution, framerate))
-        cur_dur = cur_dur+segment_dur
-    return segments
+def createFrameAndBitRate(framerate, bitrate, mos):
+    return {'Framerate': framerate, 'Bitrate': bitrate, 'MOS': mos}
 
+rates = [
+    # container
+    createFrameAndBitRate(15, 128, 3.42),
+    createFrameAndBitRate(30, 128, 3.74),
+    createFrameAndBitRate(30, 384, 4.53),
+
+    createFrameAndBitRate(7.5, 64, 2.84),
+    createFrameAndBitRate(7.5, 128, 3.32),
+    createFrameAndBitRate(15, 64, 3.42),
+
+    # foreman
+    createFrameAndBitRate(30, 128, 2.16),
+    createFrameAndBitRate(15, 128, 2.42),
+    createFrameAndBitRate(30, 384, 4.58),
+
+    createFrameAndBitRate(15, 64, 1.53),
+    createFrameAndBitRate(7.5, 64, 2.05),
+    createFrameAndBitRate(7.5, 128, 3.37),
+
+    # coastguard
+    createFrameAndBitRate(30, 128, 2.11),
+    createFrameAndBitRate(15, 128, 2.32),
+    createFrameAndBitRate(30, 384, 3.16),
+
+    createFrameAndBitRate(15, 64, 1.74),
+    createFrameAndBitRate(7.5, 128, 2.53),
+    createFrameAndBitRate(7.5, 64, 2.63),
+
+    # news
+    createFrameAndBitRate(15, 128, 4.0),
+    createFrameAndBitRate(30, 128, 4.16),
+    createFrameAndBitRate(30, 384, 5),
+
+    createFrameAndBitRate(15, 64, 3.32),
+    createFrameAndBitRate(7.5, 64, 3.47),
+    createFrameAndBitRate(7.5, 128, 4.05),
+
+    # tempete
+    createFrameAndBitRate(30, 128, 2.47),
+    createFrameAndBitRate(15, 128, 3.47),
+    createFrameAndBitRate(30, 384, 4.53),
+
+    createFrameAndBitRate(15, 64, 2),
+    createFrameAndBitRate(7.5, 64, 3.05),
+    createFrameAndBitRate(7.5, 128, 3.37)
+]
+
+##region prepare individual results with multiple MOS per M0 info
 prepared_input_segments = []
-
-#region avg 384
-# rising
-rates = ['R1','R1','R1','R1','R2','R2','R2','R2','R3','R3','R3','R3']
-prepared_input_segments.append([createVideoSegmentsFromRates(rates), 1.7])
-
-# falling
-rates = ['R3','R3','R3','R3','R2','R2','R2','R2','R1','R1','R1','R1']
-prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.45])
-
-# convex
-rates = ['R2','R2','R2','R2','R3','R3','R3','R3','R1','R1','R1','R1']
-prepared_input_segments.append([createVideoSegmentsFromRates(rates), 2.55])
-#endregion
-
-#region avg 768
-# rising
-rates = ['R3','R3','R3','R3','R4','R4','R4','R4','R5','R5','R5','R5']
-prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.55])
-
-# falling
-rates = ['R5','R5','R5','R5','R4','R4','R4','R4','R3','R3','R3','R3']
-prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.5])
-
-# convex
-rates = ['R4','R4','R4','R4','R5','R5','R5','R5','R3','R3','R3','R3']
-prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.15])
-#endregion
-
-#region avg 768 (5 rates)
-# rising
-rates = ['R1','R3','R3','R3','R4','R4','R4','R4','R4','R5','R5','R6']
-prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.25])
-
-# falling
-rates = ['R6','R5','R5','R4','R4','R4','R4','R4','R3','R3','R3','R1']
-prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.6])
-
-# convex
-rates = ['R1','R3','R4','R4','R5','R6','R5','R4','R4','R4','R3','R3']
-prepared_input_segments.append([createVideoSegmentsFromRates(rates), 2.55])
-#endregion
-
-#region avg 1024 (5 rates)
-# rising
-rates = ['R1','R3','R4','R4','R4','R5','R5','R5','R6','R6','R6','R6']
-prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.0])
-
-# falling
-rates = ['R6','R6','R6','R6','R5','R5','R5','R4','R4','R4','R3','R1']
-prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.75])
-
-# convex
-rates = ['R1','R4','R4','R4','R6','R6','R6','R6','R5','R5','R5','R3']
-prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.4])
-#endregion
+for values in rates:
+    segments = [createVideoSegment(codec, values['Bitrate'], 0, 10, resolution, values['Framerate'])]
+    prepared_input_segments.append([segments, values['MOS']])
 
 # exec all estimations
 results = []
 for seg in prepared_input_segments:
     input = {}
-    input["I11"] = prepareI11([createAudioSegment('aaclc', 0, 0, 9*12)]) # no audio
+    input["I11"] = prepareI11([createAudioSegment('aaclc', 0, 0, 10)]) # no audio
     input["I13"] = prepareI13(seg[0])
-    input["IGen"] = prepareIGen(resolution, 80)
+    input["IGen"] = prepareIGen('1760x1440', 120)
     results.append(runModel(input, seg[1]))
 
 # write json to file
-with open(f'results/{output_file}', 'w') as file:
+with open(f'results/{output_file}.json', 'w') as file:
     file.write(json.dumps(results))
+#endregion
+
+##region prepare results with average mos and calculate again
+prepared_input_segments = []
+
+all_rates = [[30,128],[15,128],[30,384],[15,64],[7.5,64],[7.5,128]]
+for (f, b) in all_rates:
+    avg_mos_lst = [x['MOS'] for x in rates if x['Framerate'] == f and x['Bitrate'] == b]
+    assert len(avg_mos_lst) == 5, 'not all videos have framerate and bitrate'
+    prepared_input_segments.append([[createVideoSegment(codec, b, 0, 10, resolution, f)], statistics.mean(avg_mos_lst)])
+
+# exec all estimations
+results = []
+for seg in prepared_input_segments:
+    input = {}
+    input["I11"] = prepareI11([createAudioSegment('aaclc', 0, 0, 10)]) # no audio
+    input["I13"] = prepareI13(seg[0])
+    input["IGen"] = prepareIGen('1760x1440', 120)
+    results.append(runModel(input, seg[1]))
+
+# write json to file
+with open(f'results/{output_file}_avg.json', 'w') as file:
+    file.write(json.dumps(results))
+#endregion
