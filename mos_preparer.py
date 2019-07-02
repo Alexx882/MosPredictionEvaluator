@@ -38,11 +38,11 @@ def prepareI23(stalls):
 def createStallingSegment(start, duration):
     return [start, duration]
 
-def prepareIGen(resolution, viewing_distance):
+def prepareIGen(resolution, viewing_distance, device='pc'):
     '''Prepares device information'''
     return {
         "displaySize": resolution,
-        "device": "pc",
+        "device": device,
         "viewingDistance": viewing_distance
     }
 
@@ -56,56 +56,90 @@ def runModel(input, expected):
             'expected': expected}
 
 
-# Apply values from 'QoE of YouTube Video Streaming for Current Internet Transport Protocols'
-output_file = 'result_conf_485'
+# Apply values from 'Flicker Effects in Adaptive Video Streaming to Handheld Devices'
+output_file = 'result_acmmm2011-perception'
 
 # they claim independence from video parameters, so choose appropriate ones
 codec = 'h264'
-resolution = '1920x1080' 
-framerate = 25.0
-bitrate = 5000
-video_length = 30
+base_framerate = 30.0
+base_resolution = '480x320'
+bitrate = 1000 # not defined, appropriate chosen
+video_length = 12
 
-# multiple stalling lengths
-paper_infos = [{
-    'StallingLength': 1,
-    'MosResults': [5, 3.5, 3.05, 3.1, 2.2, 1.95, 2.0]
-    },
-    {
-    'StallingLength': 3,
-    'MosResults': [5, 3.2, 2.5, 2.1, 2.2, 2.0, 2.1]
-    }]
+# values are given in frames
+durations = [30,60,90,180]
+durations = [d/30 for d in durations]
 
 results = []
-for paper_info in paper_infos:
-    stalling_length = paper_info[ 'StallingLength']
-    mos_scores = paper_info[ 'MosResults']
-    assert len(mos_scores) == 7, f'Missed a result {mos_scores}'
 
-    for stalling_amount in range(7):
-        # periodic stalling
-        stalling_distance = video_length/(stalling_amount+1)
-        
+#region Blur Flicker
+target_resolutions = [
+    {'Res': '240x160',
+    'Mos': [-1, -0.8, -0.2, -0.7]},
+    {'Res': '120x80',
+    'Mos': [-1.5, -1.3, -1.2, -1.15]}
+    ]
+
+for target_res_info in target_resolutions:
+    target_res = target_res_info['Res']
+    mos_scores = target_res_info['Mos']
+    for i in range(len(durations)):
+        duration = durations[i]
+        mos = mos_scores[i] + 3 # paper uses range [-2,+2]
         segments = []
-        stalls = []
-        audio = []
-
         current_time = 0
-        # create stalls
-        for num_segments in range(stalling_amount+1):
-            stalls.append(createStallingSegment(current_time, stalling_length if current_time != 0 else 0))
-            current_time += stalling_distance
+        base_res_used = True
+        while current_time < video_length:
+            segments.append(createVideoSegment(codec, bitrate, current_time, duration, base_resolution if base_res_used else target_res , base_framerate))
+            current_time += duration
+            base_res_used = not base_res_used
+         
+        # exec estimation
+        input = {}
+        input["O21"] = [1] # no audio
+        input["I13"] = prepareI13(segments)
+        # input["I23"] = prepareI23(stalls)
+        input["IGen"] = prepareIGen('480x320', 40, 'mobile')
 
-        segments.append(createVideoSegment(codec, bitrate, 0, video_length, resolution, framerate))
-        audio.append(createAudioSegment('aaclc', 0, 0, video_length))
+        results.append(runModel(input, mos))
+#endregion Blur Flicker
+
+#region Motion Flicker
+target_framerates = [
+    {'Fps': 15.0,
+    'Mos': [0, .05, .15, .08]},
+    {'Fps': 10.0,
+    'Mos': [-.8, -.6, -.5, -.55]},
+    {'Fps': 5.0,
+    'Mos': [-1.25, -1.15, -1.1, -1.15]},
+    {'Fps': 3.0,
+    'Mos': [-1.45, -1.4, -1.4, -1.25]},
+    ]
+
+for target_fps_info in target_framerates:
+    target_fps = target_fps_info['Fps']
+    mos_scores = target_fps_info['Mos']
+    for i in range(len(durations)):
+        duration = durations[i]
+        mos = mos_scores[i] + 3 # paper uses range [-2,+2]
+        segments = []
+        current_time = 0
+        base_fps_used = True
+        while current_time < video_length:
+            segments.append(createVideoSegment(codec, bitrate, current_time, duration, base_resolution, base_framerate if base_fps_used else target_fps))
+            current_time += duration
+            base_fps_used = not base_fps_used
+        
 
         # exec estimation
         input = {}
-        input["I11"] = prepareI11(audio) # no audio
+        input["O21"] = [1] # no audio
         input["I13"] = prepareI13(segments)
-        input["I23"] = prepareI23(stalls)
-        input["IGen"] = prepareIGen(resolution, 80)
-        results.append(runModel(input, mos_scores[stalling_amount]))
+        # input["I23"] = prepareI23(stalls)
+        input["IGen"] = prepareIGen('480x320', 50, 'mobile')
+
+        results.append(runModel(input, mos))
+#endregion Motion Flicker
 
 # write json to file
 with open(f'results/{output_file}.json', 'w') as file:
