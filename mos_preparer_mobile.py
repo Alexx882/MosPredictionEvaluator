@@ -1,60 +1,6 @@
 import json
-from itu_p1203 import P1203Standalone
+import mos_calculation
 import statistics
-
-STREAM_ID = 42
-
-def prepareI11(segments):
-    '''Prepares I.11 aka audio'''
-    return {'streamId': STREAM_ID, 'segments': segments}
-
-def createAudioSegment(codec, bitrate, start, duration):
-    return {
-        'codec': codec,
-        'bitrate': bitrate,
-        'start': start, 
-        'duration': duration
-    }
-
-def prepareI13(segments):
-    '''Prepares I.13 aka video'''
-    return {'streamId': STREAM_ID, 'segments': segments}
-
-def createVideoSegment(codec, bitrate, start, duration, resolution, fps):
-    '''Creates a video segment for M0, so no frames or representation id'''
-    return {
-        'codec': codec,
-        'bitrate': bitrate,
-        'start': start, 
-        'duration': duration, 
-        'resolution': resolution,
-        'fps': fps
-    }
-
-def prepareI23(stalls):
-    '''Prepares I.14 aka stalling, here called I.23'''
-    return {'streamId': STREAM_ID, 'stalling': stalls}
-    
-def createStallingSegment(start, duration):
-    return [start, duration]
-
-def prepareIGen(resolution, viewing_distance, device='pc'):
-    '''Prepares device information'''
-    return {
-        "displaySize": resolution,
-        "device": device,
-        "viewingDistance": viewing_distance
-    }
-
-def runModel(input, expected):
-      # create model ...
-    itu_p1203 = P1203Standalone(input)
-    # ... and run it
-    output = itu_p1203.calculate_complete(False)
-
-    return {'calculated': output['O46'],
-            'expected': expected}
-
 
 # Apply values from 'Flicker Effects in Adaptive Video Streaming to Handheld Devices'
 output_file = 'result_acmmm2011-perception'
@@ -65,6 +11,7 @@ base_framerate = 30.0
 base_resolution = '480x320'
 bitrate = 1000 # not defined, appropriate chosen
 video_length = 12
+info_IGen =  mos_calculation.prepareIGen('480x320', 50, 'mobile')
 
 # values are given in frames
 durations = [30,60,90,180]
@@ -90,18 +37,13 @@ for target_res_info in target_resolutions:
         current_time = 0
         base_res_used = True
         while current_time < video_length:
-            segments.append(createVideoSegment(codec, bitrate, current_time, duration, base_resolution if base_res_used else target_res , base_framerate))
+            segments.append(mos_calculation.createVideoSegment(codec, bitrate, current_time, duration, base_resolution if base_res_used else target_res , base_framerate))
             current_time += duration
             base_res_used = not base_res_used
          
         # exec estimation
-        input = {}
-        input["O21"] = [1] # no audio
-        input["I13"] = prepareI13(segments)
-        # input["I23"] = prepareI23(stalls)
-        input["IGen"] = prepareIGen('480x320', 40, 'mobile')
-
-        results.append(runModel(input, mos))
+        res = mos_calculation.runModelFromSegments(segments, None, info_IGen, mos)
+        results.append(res)
 #endregion Blur Flicker
 
 #region Motion Flicker
@@ -126,21 +68,14 @@ for target_fps_info in target_framerates:
         current_time = 0
         base_fps_used = True
         while current_time < video_length:
-            segments.append(createVideoSegment(codec, bitrate, current_time, duration, base_resolution, base_framerate if base_fps_used else target_fps))
+            segments.append(mos_calculation.createVideoSegment(codec, bitrate, current_time, duration, base_resolution, base_framerate if base_fps_used else target_fps))
             current_time += duration
             base_fps_used = not base_fps_used
         
 
         # exec estimation
-        input = {}
-        input["O21"] = [1] # no audio
-        input["I13"] = prepareI13(segments)
-        # input["I23"] = prepareI23(stalls)
-        input["IGen"] = prepareIGen('480x320', 50, 'mobile')
-
-        results.append(runModel(input, mos))
+        res = mos_calculation.runModelFromSegments(segments, None, info_IGen, mos)
+        results.append(res)
 #endregion Motion Flicker
 
-# write json to file
-with open(f'results/{output_file}.json', 'w') as file:
-    file.write(json.dumps(results))
+mos_calculation.writeJsonToFile(output_file, results)

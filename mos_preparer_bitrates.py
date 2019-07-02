@@ -1,62 +1,8 @@
 import json
-from itu_p1203 import P1203Standalone
-
-STREAM_ID = 42
-
-def prepareI11(segments):
-    '''Prepares I.11 aka audio'''
-    return {'streamId': STREAM_ID, 'segments': segments}
-
-def createAudioSegment(codec, bitrate, start, duration):
-    return {
-        'codec': codec,
-        'bitrate': bitrate,
-        'start': start, 
-        'duration': duration
-    }
-
-def prepareI13(segments):
-    '''Prepares I.13 aka video'''
-    return {'streamId': STREAM_ID, 'segments': segments}
-
-def createVideoSegment(codec, bitrate, start, duration, resolution, fps):
-    '''Creates a video segment for M0, so no frames or representation id'''
-    return {
-        'codec': codec,
-        'bitrate': bitrate,
-        'start': start, 
-        'duration': duration, 
-        'resolution': resolution,
-        'fps': fps
-    }
-
-def prepareI23(stalls):
-    '''Prepares I.14 aka stalling, here called I.23'''
-    return {'streamId': STREAM_ID, 'stalling': stalls}
-    
-def createStallingSegment(start, duration):
-    return [start, duration]
-
-def prepareIGen(resolution, viewing_distance):
-    '''Prepares device information'''
-    return {
-        "displaySize": resolution,
-        "device": "pc",
-        "viewingDistance": viewing_distance
-    }
-
-def runModel(input, expected):
-      # create model ...
-    itu_p1203 = P1203Standalone(input)
-    # ... and run it
-    output = itu_p1203.calculate_complete(False)
-
-    return {'calculated': output['O46'],
-            'expected': expected}
-
+import mos_calculation
 
 # Assume values from 'A Study on Quality of Experience for Adaptive Streaming Service'
-output_file = 'result_06649320.json'
+output_file = 'result_06649320'
 
 codec = 'h264'
 framerate = 25
@@ -76,7 +22,7 @@ def createVideoSegmentsFromRates(rates):
     segments = []
     cur_dur = 0
     for r in rates:
-        segments.append(createVideoSegment(codec, bitrates[r], cur_dur, segment_dur, resolution, framerate))
+        segments.append(mos_calculation.createVideoSegment(codec, bitrates[r], cur_dur, segment_dur, resolution, framerate))
         cur_dur = cur_dur+segment_dur
     return segments
 
@@ -141,12 +87,7 @@ prepared_input_segments.append([createVideoSegmentsFromRates(rates), 3.4])
 # exec all estimations
 results = []
 for seg in prepared_input_segments:
-    input = {}
-    input["I11"] = prepareI11([createAudioSegment('aaclc', 0, 0, 9*12)]) # no audio
-    input["I13"] = prepareI13(seg[0])
-    input["IGen"] = prepareIGen(resolution, 80)
-    results.append(runModel(input, seg[1]))
+    res = mos_calculation.runModelFromSegments(seg[0], None, mos_calculation.prepareIGen(resolution, 80), seg[1])
+    results.append(res)
 
-# write json to file
-with open(f'results/{output_file}', 'w') as file:
-    file.write(json.dumps(results))
+mos_calculation.writeJsonToFile(output_file, results)

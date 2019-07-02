@@ -1,60 +1,6 @@
 import json
-from itu_p1203 import P1203Standalone
+import mos_calculation
 import statistics
-
-STREAM_ID = 42
-
-def prepareI11(segments):
-    '''Prepares I.11 aka audio'''
-    return {'streamId': STREAM_ID, 'segments': segments}
-
-def createAudioSegment(codec, bitrate, start, duration):
-    return {
-        'codec': codec,
-        'bitrate': bitrate,
-        'start': start, 
-        'duration': duration
-    }
-
-def prepareI13(segments):
-    '''Prepares I.13 aka video'''
-    return {'streamId': STREAM_ID, 'segments': segments}
-
-def createVideoSegment(codec, bitrate, start, duration, resolution, fps):
-    '''Creates a video segment for M0, so no frames or representation id'''
-    return {
-        'codec': codec,
-        'bitrate': bitrate,
-        'start': start, 
-        'duration': duration, 
-        'resolution': resolution,
-        'fps': fps
-    }
-
-def prepareI23(stalls):
-    '''Prepares I.14 aka stalling, here called I.23'''
-    return {'streamId': STREAM_ID, 'stalling': stalls}
-    
-def createStallingSegment(start, duration):
-    return [start, duration]
-
-def prepareIGen(resolution, viewing_distance):
-    '''Prepares device information'''
-    return {
-        "displaySize": resolution,
-        "device": "pc",
-        "viewingDistance": viewing_distance
-    }
-
-def runModel(input, expected):
-      # create model ...
-    itu_p1203 = P1203Standalone(input)
-    # ... and run it
-    output = itu_p1203.calculate_complete(False)
-
-    return {'calculated': output['O46'],
-            'expected': expected}
-
 
 # Copy values from 'Cross-Dimensional Perceptual Quality Assessment for Low Bit-Rate Videos'
 output_file = 'result_04660307'
@@ -112,24 +58,21 @@ rates = [
     createFrameAndBitRate(7.5, 128, 3.37)
 ]
 
+info_IGen = mos_calculation.prepareIGen('1760x1440', 120)
+
 ##region prepare individual results with multiple MOS per M0 info
 prepared_input_segments = []
 for values in rates:
-    segments = [createVideoSegment(codec, values['Bitrate'], 0, 10, resolution, values['Framerate'])]
+    segments = [mos_calculation.createVideoSegment(codec, values['Bitrate'], 0, 10, resolution, values['Framerate'])]
     prepared_input_segments.append([segments, values['MOS']])
 
 # exec all estimations
 results = []
 for seg in prepared_input_segments:
-    input = {}
-    input["I11"] = prepareI11([createAudioSegment('aaclc', 0, 0, 10)]) # no audio
-    input["I13"] = prepareI13(seg[0])
-    input["IGen"] = prepareIGen('1760x1440', 120)
-    results.append(runModel(input, seg[1]))
+    res = mos_calculation.runModelFromSegments(seg[0], None, info_IGen, seg[1])
+    results.append(res)
 
-# write json to file
-with open(f'results/{output_file}.json', 'w') as file:
-    file.write(json.dumps(results))
+mos_calculation.writeJsonToFile(f'{output_file}', results)
 #endregion
 
 ##region prepare results with average mos and calculate again
@@ -139,18 +82,13 @@ all_rates = [[30,128],[15,128],[30,384],[15,64],[7.5,64],[7.5,128]]
 for (f, b) in all_rates:
     avg_mos_lst = [x['MOS'] for x in rates if x['Framerate'] == f and x['Bitrate'] == b]
     assert len(avg_mos_lst) == 5, 'not all videos have framerate and bitrate'
-    prepared_input_segments.append([[createVideoSegment(codec, b, 0, 10, resolution, f)], statistics.mean(avg_mos_lst)])
+    prepared_input_segments.append([[mos_calculation.createVideoSegment(codec, b, 0, 10, resolution, f)], statistics.mean(avg_mos_lst)])
 
 # exec all estimations
 results = []
 for seg in prepared_input_segments:
-    input = {}
-    input["I11"] = prepareI11([createAudioSegment('aaclc', 0, 0, 10)]) # no audio
-    input["I13"] = prepareI13(seg[0])
-    input["IGen"] = prepareIGen('1760x1440', 120)
-    results.append(runModel(input, seg[1]))
+    res = mos_calculation.runModelFromSegments(seg[0], None, info_IGen, seg[1])
+    results.append(res)
 
-# write json to file
-with open(f'results/{output_file}_avg.json', 'w') as file:
-    file.write(json.dumps(results))
+mos_calculation.writeJsonToFile(f'{output_file}_avg', results)
 #endregion
