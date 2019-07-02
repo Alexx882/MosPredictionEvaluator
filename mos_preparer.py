@@ -56,101 +56,57 @@ def runModel(input, expected):
             'expected': expected}
 
 
-# Copy values from 'Cross-Dimensional Perceptual Quality Assessment for Low Bit-Rate Videos'
-output_file = 'result_04660307'
+# Apply values from 'QoE of YouTube Video Streaming for Current Internet Transport Protocols'
+output_file = 'result_conf_485'
 
+# they claim independence from video parameters, so choose appropriate ones
 codec = 'h264'
-resolution = '1408x1152' # '352x288'
+resolution = '1920x1080' 
+framerate = 25.0
+bitrate = 5000
+video_length = 30
 
-def createFrameAndBitRate(framerate, bitrate, mos):
-    return {'Framerate': framerate, 'Bitrate': bitrate, 'MOS': mos}
+# multiple stalling lengths
+paper_infos = [{
+    'StallingLength': 1,
+    'MosResults': [5, 3.5, 3.05, 3.1, 2.2, 1.95, 2.0]
+    },
+    {
+    'StallingLength': 3,
+    'MosResults': [5, 3.2, 2.5, 2.1, 2.2, 2.0, 2.1]
+    }]
 
-rates = [
-    # container
-    createFrameAndBitRate(15, 128, 3.42),
-    createFrameAndBitRate(30, 128, 3.74),
-    createFrameAndBitRate(30, 384, 4.53),
-
-    createFrameAndBitRate(7.5, 64, 2.84),
-    createFrameAndBitRate(7.5, 128, 3.32),
-    createFrameAndBitRate(15, 64, 3.42),
-
-    # foreman
-    createFrameAndBitRate(30, 128, 2.16),
-    createFrameAndBitRate(15, 128, 2.42),
-    createFrameAndBitRate(30, 384, 4.58),
-
-    createFrameAndBitRate(15, 64, 1.53),
-    createFrameAndBitRate(7.5, 64, 2.05),
-    createFrameAndBitRate(7.5, 128, 3.37),
-
-    # coastguard
-    createFrameAndBitRate(30, 128, 2.11),
-    createFrameAndBitRate(15, 128, 2.32),
-    createFrameAndBitRate(30, 384, 3.16),
-
-    createFrameAndBitRate(15, 64, 1.74),
-    createFrameAndBitRate(7.5, 128, 2.53),
-    createFrameAndBitRate(7.5, 64, 2.63),
-
-    # news
-    createFrameAndBitRate(15, 128, 4.0),
-    createFrameAndBitRate(30, 128, 4.16),
-    createFrameAndBitRate(30, 384, 5),
-
-    createFrameAndBitRate(15, 64, 3.32),
-    createFrameAndBitRate(7.5, 64, 3.47),
-    createFrameAndBitRate(7.5, 128, 4.05),
-
-    # tempete
-    createFrameAndBitRate(30, 128, 2.47),
-    createFrameAndBitRate(15, 128, 3.47),
-    createFrameAndBitRate(30, 384, 4.53),
-
-    createFrameAndBitRate(15, 64, 2),
-    createFrameAndBitRate(7.5, 64, 3.05),
-    createFrameAndBitRate(7.5, 128, 3.37)
-]
-
-##region prepare individual results with multiple MOS per M0 info
-prepared_input_segments = []
-for values in rates:
-    segments = [createVideoSegment(codec, values['Bitrate'], 0, 10, resolution, values['Framerate'])]
-    prepared_input_segments.append([segments, values['MOS']])
-
-# exec all estimations
 results = []
-for seg in prepared_input_segments:
-    input = {}
-    input["I11"] = prepareI11([createAudioSegment('aaclc', 0, 0, 10)]) # no audio
-    input["I13"] = prepareI13(seg[0])
-    input["IGen"] = prepareIGen('1760x1440', 120)
-    results.append(runModel(input, seg[1]))
+for paper_info in paper_infos:
+    stalling_length = paper_info[ 'StallingLength']
+    mos_scores = paper_info[ 'MosResults']
+    assert len(mos_scores) == 7, f'Missed a result {mos_scores}'
+
+    for stalling_amount in range(7):
+        # periodic stalling
+        stalling_distance = video_length/(stalling_amount+1)
+        
+        segments = []
+        stalls = []
+        audio = []
+
+        current_time = 0
+        # create stalls
+        for num_segments in range(stalling_amount+1):
+            stalls.append(createStallingSegment(current_time, stalling_length if current_time != 0 else 0))
+            current_time += stalling_distance
+
+        segments.append(createVideoSegment(codec, bitrate, 0, video_length, resolution, framerate))
+        audio.append(createAudioSegment('aaclc', 0, 0, video_length))
+
+        # exec estimation
+        input = {}
+        input["I11"] = prepareI11(audio) # no audio
+        input["I13"] = prepareI13(segments)
+        input["I23"] = prepareI23(stalls)
+        input["IGen"] = prepareIGen(resolution, 80)
+        results.append(runModel(input, mos_scores[stalling_amount]))
 
 # write json to file
 with open(f'results/{output_file}.json', 'w') as file:
     file.write(json.dumps(results))
-#endregion
-
-##region prepare results with average mos and calculate again
-prepared_input_segments = []
-
-all_rates = [[30,128],[15,128],[30,384],[15,64],[7.5,64],[7.5,128]]
-for (f, b) in all_rates:
-    avg_mos_lst = [x['MOS'] for x in rates if x['Framerate'] == f and x['Bitrate'] == b]
-    assert len(avg_mos_lst) == 5, 'not all videos have framerate and bitrate'
-    prepared_input_segments.append([[createVideoSegment(codec, b, 0, 10, resolution, f)], statistics.mean(avg_mos_lst)])
-
-# exec all estimations
-results = []
-for seg in prepared_input_segments:
-    input = {}
-    input["I11"] = prepareI11([createAudioSegment('aaclc', 0, 0, 10)]) # no audio
-    input["I13"] = prepareI13(seg[0])
-    input["IGen"] = prepareIGen('1760x1440', 120)
-    results.append(runModel(input, seg[1]))
-
-# write json to file
-with open(f'results/{output_file}_avg.json', 'w') as file:
-    file.write(json.dumps(results))
-#endregion
