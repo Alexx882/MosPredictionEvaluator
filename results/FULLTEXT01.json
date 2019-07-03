@@ -1,0 +1,29 @@
+[{
+		"calculated": 3.9760262910052924,
+		"expected": 3.45
+	}, {
+		"calculated": 3.9763075081705948,
+		"expected": 3.3
+	}, {
+		"calculated": 3.819649158297052,
+		"expected": 3
+	}, {
+		"calculated": 3.819649158297052,
+		"expected": 3.35
+	}, {
+		"calculated": 3.819649158297052,
+		"expected": 4.15
+	}, {
+		"calculated": 3.819649158297052,
+		"expected": 4.2
+	}, {
+		"calculated": 3.467825434967105,
+		"expected": 3.05
+	}, {
+		"calculated": 3.2154582850635363,
+		"expected": 2.55
+	}, {
+		"calculated": 3.312841021353802,
+		"expected": 2.3
+	}
+]
