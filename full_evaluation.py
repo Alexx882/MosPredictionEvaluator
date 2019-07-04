@@ -1,3 +1,6 @@
+# video spec recommendations:
+# https://support.google.com/youtube/answer/1722171?hl=en
+
 print('mos_preparer_bitrates')
 import mos_preparer_bitrates
 

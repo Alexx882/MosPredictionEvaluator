@@ -1,5 +1,5 @@
-Number of calculations: 108
-Pearson coefficient: 0.29622920691159255 (p-val: 0.0018528273717395767)
-Mean Absolute Error: 0.9334287037037039
-Median Absolute Error: 0.782
-Root Mean Squared Error (Deviation): 1.1359459891551964
+Number of calculations: 78
+Pearson coefficient: 0.4004867098378954 (p-val: 0.0002799089254844853)
+Mean Absolute Error: 1.0233820512820515
+Median Absolute Error: 0.8226
+Root Mean Square Error (Deviation): 1.2302618107853804

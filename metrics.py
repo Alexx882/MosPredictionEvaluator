@@ -49,7 +49,7 @@ def describe_metrics(metrics):
     sb.append(f"Number of calculations: {metrics['N']}\n")
     sb.append(f"Pearson coefficient: {metrics['Pearson'][0]} (p-val: {metrics['Pearson'][1]})\n")
     sb.append(f"Mean Absolute Error: {metrics['MAE']}\nMedian Absolute Error: {metrics['MEDAE']}\n")
-    sb.append(f"Root Mean Squared Error (Deviation): {metrics['RMSE']}\n")
+    sb.append(f"Root Mean Square Error (Deviation): {metrics['RMSE']}\n")
     return ''.join(sb)
 
 def create_csv(filename, expected, calculated):
@@ -72,11 +72,12 @@ best = [0, '']
 # individual metrics
 for filename in filenames:
     met = calculate_metrics([filename], output_filename=f"analysis/{re.sub('.json$', '', filename)}")
-    if met['Pearson'][0] < worst[0]:
-        worst[0] = met['Pearson'][0]
+    used_metric = met['Pearson'][0]
+    if  used_metric < worst[0]:
+        worst[0] = used_metric
         worst[1] = filename
-    if met['Pearson'][0] > best[0]:
-        best[0] = met['Pearson'][0]
+    if used_metric > best[0]:
+        best[0] = used_metric
         best[1] = filename
 
 print(f"worst: {worst[1]}, best: {best[1]}")
