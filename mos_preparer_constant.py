@@ -61,19 +61,19 @@ rates = [
 info_IGen = mos_calculation.prepareIGen('1760x1440', 120)
 
 ##region prepare individual results with multiple MOS per M0 info
-prepared_input_segments = []
-for values in rates:
-    segments = [mos_calculation.createVideoSegment(codec, values['Bitrate'], 0, 10, resolution, values['Framerate'])]
-    prepared_input_segments.append([segments, values['MOS']])
+# prepared_input_segments = []
+# for values in rates:
+#     segments = [mos_calculation.createVideoSegment(codec, values['Bitrate'], 0, 10, resolution, values['Framerate'])]
+#     prepared_input_segments.append([segments, values['MOS']])
 
-# exec all estimations
-results = []
-for seg in prepared_input_segments:
-    res = mos_calculation.runModelFromSegments(seg[0], None, info_IGen, seg[1])
-    results.append(res)
+# # exec all estimations
+# results = []
+# for seg in prepared_input_segments:
+#     res = mos_calculation.runModelFromSegments(seg[0], None, info_IGen, seg[1])
+#     results.append(res)
 
-mos_calculation.writeJsonToFile(f'{output_file}', results)
-#endregion
+# mos_calculation.writeJsonToFile(f'{output_file}', results)
+##endregion
 
 ##region prepare results with average mos and calculate again
 prepared_input_segments = []
@@ -91,4 +91,4 @@ for seg in prepared_input_segments:
     results.append(res)
 
 mos_calculation.writeJsonToFile(f'{output_file}_avg', results)
-#endregion
+##endregion
