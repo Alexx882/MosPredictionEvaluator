@@ -2,7 +2,7 @@ import json
 import mos_calculation
 
 # Assume values from 'A Study on Quality of Experience for Adaptive Streaming Service'
-output_file = 'result_06649320'
+output_file = '06649320_bitrates'
 
 codec = 'h264'
 framerate = 25

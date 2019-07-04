@@ -4,7 +4,7 @@ import mos_calculation
 # Assume values from 'On subjective quality assessment of adaptive video streaming
 # via crowdsourcing and laboratory based experiments' and partially from their previous 
 # publication 'About Subjective Evaluation of Adaptive Video Streaming'
-output_file = 'FULLTEXT01'
+output_file = 'FULLTEXT01_bitrates_and_stalling'
 
 codec = 'h264'
 framerate = 24

@@ -3,7 +3,7 @@ import mos_calculation
 
 # create initial delay estimations from 'Initial Delay Vs. Interruptions: Between the Devil and the Deep Blue Sea'
 # assume values as they are not in the paper
-output_file = '06263849'
+output_file = '06263849_initial_delay'
 
 codec = 'h264'
 framerate = 25

@@ -3,7 +3,7 @@ import mos_calculation
 import statistics
 
 # Copy values from 'Cross-Dimensional Perceptual Quality Assessment for Low Bit-Rate Videos'
-output_file = 'result_04660307'
+output_file = '04660307_constant'
 
 codec = 'h264'
 resolution = '1408x1152' # '352x288'

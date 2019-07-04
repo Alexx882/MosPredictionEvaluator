@@ -3,7 +3,7 @@ import mos_calculation
 import statistics
 
 # Apply values from 'Flicker Effects in Adaptive Video Streaming to Handheld Devices'
-output_file = 'result_acmmm2011-perception'
+output_file = 'acmmm2011-perception_mobile'
 
 # they claim independence from video parameters, so choose appropriate ones
 codec = 'h264'

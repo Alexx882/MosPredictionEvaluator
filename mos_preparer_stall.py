@@ -2,7 +2,7 @@ import json
 import mos_calculation
 
 # craete stalls from 'Estimating the impact of single and multiple freezes on video quality'
-output_file = 'result_279425'
+output_file = '279425_stall'
 
 codec = 'h264'
 framerate = 25.0

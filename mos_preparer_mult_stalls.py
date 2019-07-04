@@ -3,7 +3,7 @@ import mos_calculation
 import statistics
 
 # Apply values from 'QoE of YouTube Video Streaming for Current Internet Transport Protocols'
-output_file = 'result_conf_485'
+output_file = 'conf_485_mult_stalls'
 
 # they claim independence from video parameters, so choose appropriate ones
 codec = 'h264'
